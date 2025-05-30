@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Upload Schulnetz Noten HTML</title>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Schulnetz Noten HTML hochladen</h1>
+        <p class="text-muted text-center">Fügen Sie den HTML-Code der Schulnetz-Notenseite unten ein und klicken Sie auf "Hochladen".</p>
+        
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form action="/upload" method="post">
+                    <div class="mb-3">
+                        <label for="html" class="form-label"><strong>HTML-Code:</strong></label>
+                        <textarea id="html" name="html" class="form-control" rows="10" placeholder="Fügen Sie den kopierten HTML-Code hier ein..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mb-2">Hochladen</button>
+                </form>
+                <a href="/" class="btn btn-secondary w-100">Zurück</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

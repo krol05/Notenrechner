@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="de">
+{% if show_login %}
+<div class="container mt-5">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h2 class="text-center mb-0">Einloggen</h2>
+        </div>
+        <div class="card-body">
+            <!-- Fehlermeldung -->
+            {% if error %}
+            <div class="alert alert-danger text-center">{{ error }}</div>
+            {% endif %}
+            {% if message %}
+            <div class="alert alert-success text-center">{{ message }}</div>
+            {% endif %}
+
+            <!-- Login-Formular -->
+            <form id="loginForm" method="POST" action="/">
+                <input type="hidden" name="action" value="login">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Benutzername</label>
+                    <input type="text" id="username" name="username" class="form-control" placeholder="Benutzername eingeben" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Passwort</label>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Passwort eingeben" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Einloggen</button>
+            </form>
+
+            <hr>
+
+            <!-- Registrieren-Taste -->
+            <button id="showRegisterButton" class="btn btn-secondary w-100">Registrieren</button>
+
+            <!-- Registrierungsformular (anfangs versteckt) -->
+            <form id="registerForm" method="POST" action="/" style="display: none; margin-top: 20px;">
+                <input type="hidden" name="action" value="register">
+                <div class="mb-3">
+                    <label for="reg_username" class="form-label">Benutzername</label>
+                    <input type="text" id="reg_username" name="username" class="form-control" placeholder="Benutzername wählen" required>
+                </div>
+                <div class="mb-3">
+                    <label for="reg_password" class="form-label">Passwort</label>
+                    <input type="password" id="reg_password" name="password" class="form-control" placeholder="Passwort wählen" required>
+                </div>
+                <div class="mb-3">
+                    <label for="confirm_password" class="form-label">Passwort bestätigen</label>
+                    <input type="password" id="confirm_password" class="form-control" placeholder="Passwort erneut eingeben" required>
+                </div>
+                <button type="submit" class="btn btn-secondary w-100">Registrieren</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const showRegisterButton = document.getElementById("showRegisterButton");
+        const registerForm = document.getElementById("registerForm");
+        const regPassword = document.getElementById("reg_password");
+        const confirmPassword = document.getElementById("confirm_password");
+
+        
+        showRegisterButton.addEventListener("click", function () {
+            registerForm.style.display = "block";
+            showRegisterButton.style.display = "none";
+        });
+
+        
+        registerForm.addEventListener("submit", function (e) {
+            if (regPassword.value !== confirmPassword.value) {
+                e.preventDefault(); 
+                alert("Die Passwörter stimmen nicht überein!");
+            }
+        });
+    });
+</script>
+
+{% else %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Notenverwaltung</title>
+     <style>
+        .orange {
+            color: orange;
+            font-weight: bold;
+        }
+        .sort-oldest, .sort-newest {
+            background-color: lightgray;
+            color: black;
+        }
+        .active-sort {
+            background-color: #007bff;
+            color: white;
+        }   
+     </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Notenverwaltung</h1>
+        <h4 class="text-center">
+            Hallo {{ username }} !
+        </h4>
+        <div class="text-center mb-4">
+            <h4>Gesamtdurchschnitt: 
+                <span style="color: {{ 'orange' if 0 < total_average < 4.0 else 'inherit' }}">
+                    {{ total_average }}
+                </span>
+            </h4>
+            <h4>Gesamte Pluspunkte: 
+                <span style="color: {{ 'orange' if total_pluspunkte < 0 else 'inherit' }}">
+                    {{ total_pluspunkte }}
+                </span>
+            </h4>
+            <form action="/logout" method="GET, POST" style="display: inline;">
+                <button type="submit" class="btn btn-danger">Ausloggen</button>
+            </form>
+            <form action="/reset" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-danger">Daten zurücksetzen</button>
+            </form>
+        </div>
+        <nav class="mb-4">
+            <a class="btn btn-primary" href="/upload">HTML Code von Schulnetz Uploaden</a>
+        </nav>
+        <nav class="mb-4">
+            <a class="btn btn-primary" href="/fach/add">Fach hinzufügen</a>
+        </nav>
+        <div class="row">
+            <!-- Linke Seite: Tabellen -->
+            <div class="col-md-8">
+                <h2>Fächer und Noten</h2>
+                <div class="accordion" id="faecherAccordion">
+                    {% for fach in faecher %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ fach.id }}">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapse{{ fach.id }}" aria-expanded="true" aria-controls="collapse{{ fach.id }}">
+                                {{ fach.name }} - 
+                                <span style="color: {{ 'orange' if fach.calculate_pluspunkte() < 0 else 'inherit' }}">
+                                    ‎ Pluspunkte: {{ fach.calculate_pluspunkte() }}
+                                </span>
+                                ‎ | ‎ 
+                                <span style="color: {{ 'orange' if 0 < fach.average < 4.0 else 'inherit' }}">
+                                    Durchschnitt: {{ fach.average }}
+                                </span>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ fach.id }}" class="accordion-collapse collapse show" aria-labelledby="heading{{ fach.id }}">
+                            <div class="accordion-body">
+                                <!-- Sortier-Buttons -->
+                                <div class="text-center my-2">
+                                    <button class="btn btn-outline-primary sort-oldest" data-fach-id="{{ fach.id }}">Älteste zuerst</button>
+                                    <button class="btn btn-outline-primary sort-newest" data-fach-id="{{ fach.id }}">Neueste zuerst</button>
+                                </div>
+                                <table class="table table-bordered table-striped" data-fach-id="{{ fach.id }}">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Note</th>
+                                            <th>Gewichtung</th>
+                                            <th>Datum</th>
+                                            <th>Aktionen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for note in fach.noten %}
+                                        <tr>
+                                            <td>{{ note.wert }}</td>
+                                            <td>{{ note.gewichtung }}</td>
+                                            <td>{{ note.datum }}</td>
+                                            <td>
+                                                <a href="/note/edit/{{ note.id }}" class="btn btn-sm btn-secondary">Bearbeiten</a>
+                                                <a href="/note/delete/{{ note.id }}" class="btn btn-sm btn-danger">Löschen</a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                <!-- Buttons for Adding and Editing Fach -->
+                                <div class="mt-3">
+                                    <a href="/note/add/{{ fach.id }}" class="btn btn-success">Note hinzufügen</a>
+                                    <a href="/fach/edit/{{ fach.id }}" class="btn btn-warning">Fach bearbeiten</a>
+                                    <a href="/fach/delete/{{ fach.id }}" class="btn btn-danger">Fach löschen</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Rechte Seite: Eingabe und Berechnung -->
+            <div class="col-md-4">
+                <h4>Gewünschte Durchschnittsnote berechnen</h4>
+                <div class="mb-3">
+                    <label for="fachDropdown" class="form-label">Fach auswählen:</label>
+                    <select id="fachDropdown" class="form-select">
+                        {% for fach in faecher %}
+                        <option value="{{ fach.id }}">{{ fach.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="desiredAverage" class="form-label">Gewünschte Durchschnittsnote:</label>
+                    <input type="number" id="desiredAverage" class="form-control" step="0.001" min="1" max="6" value="4.0">
+                </div>
+                <div class="mb-3">
+                    <label for="newWeight" class="form-label">Gewichtung der nächsten Note:</label>
+                    <input type="number" id="newWeight" class="form-control" step="0.001" min="0.1" value="1.0">
+                </div>
+                <div class="mt-3">
+                    <h5>Mindestnote:</h5>
+                    <p id="minimumGradeResult">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const faecherData = {{ faecher_data | tojson | safe }}; 
+            const fachDropdown = document.getElementById("fachDropdown");
+            const desiredAverageInput = document.getElementById("desiredAverage");
+            const newWeightInput = document.getElementById("newWeight");
+            const resultDisplay = document.getElementById("minimumGradeResult");
+
+            function calculateMinimumGrade(grades, weights, desiredAverage, newWeight) {
+                const totalWeightedSum = grades.reduce((sum, grade, i) => sum + grade * weights[i], 0);
+                const totalWeight = weights.reduce((sum, weight) => sum + weight, 0) + newWeight;
+
+                const minimumGrade = (desiredAverage * totalWeight - totalWeightedSum) / newWeight;
+                return(minimumGrade); 
+            }
+
+            function validateInputs(desiredAverage, newWeight) {
+                if (isNaN(desiredAverage) || desiredAverage < 1 || desiredAverage > 6) {
+                    return "Die gewünschte Durchschnittsnote muss zwischen 1 und 6 liegen!";
+                }
+                if (isNaN(newWeight) || newWeight <= 0) {
+                    return "Die Gewichtung muss größer als 0 sein!";
+                }
+                return null; 
+            }
+
+            function updateMinimumGrade() {
+                const fachId = fachDropdown.value;
+                const desiredAverage = parseFloat(desiredAverageInput.value);
+                const newWeight = parseFloat(newWeightInput.value);
+
+                
+                const error = validateInputs(desiredAverage, newWeight);
+                if (error) {
+                    resultDisplay.textContent = error;
+                    resultDisplay.style.color = "red";
+                    return;
+                }
+
+                if (!fachId) {
+                    resultDisplay.textContent = "Bitte ein Fach auswählen!";
+                    resultDisplay.style.color = "red";
+                    return;
+                }
+
+                
+                const selectedFach = faecherData.find(fach => fach.id == fachId);
+                const grades = selectedFach.noten.map(note => note.wert);
+                const weights = selectedFach.noten.map(note => note.gewichtung);
+
+                
+                const minimumGrade = calculateMinimumGrade(grades, weights, desiredAverage, newWeight);
+
+                
+                if (minimumGrade > 6.0) {
+                    resultDisplay.textContent = "Die benötigte Note ist höher als 6 und kann nicht erreicht werden.";
+                    resultDisplay.style.color = "red";
+                } else if (minimumGrade < 1.0) {
+                    resultDisplay.textContent = "Die benötigte Note ist kleiner als 1 und kann nicht erreicht werden.";
+                    resultDisplay.style.color = "red";
+                } else {
+                    resultDisplay.textContent = `Die Mindestnote ist: ${minimumGrade.toFixed(3)}`;
+                    resultDisplay.style.color = "black"; 
+                }
+            }
+
+            
+            fachDropdown.addEventListener("change", updateMinimumGrade);
+            desiredAverageInput.addEventListener("input", updateMinimumGrade);
+            newWeightInput.addEventListener("input", updateMinimumGrade);
+
+            
+            updateMinimumGrade();
+        });
+
+
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+        const localStorageKey = "sortOrder";
+        let sortOrder = JSON.parse(localStorage.getItem(localStorageKey)) || {};
+
+        function sortTable(table, ascending) {
+            const rows = Array.from(table.querySelectorAll("tbody tr"));
+            rows.sort((a, b) => {
+                const dateA = new Date(a.cells[2].textContent.trim());
+                const dateB = new Date(b.cells[2].textContent.trim());
+                return ascending ? dateA - dateB : dateB - dateA;
+            });
+
+            rows.forEach(row => table.querySelector("tbody").appendChild(row));
+        }
+
+        function applySortOrder() {
+            document.querySelectorAll("table").forEach(table => {
+                const fachId = table.getAttribute("data-fach-id");
+                const order = sortOrder[fachId] || "desc"; 
+                const ascending = order === "asc";
+                sortTable(table, ascending);
+
+               
+                const buttons = document.querySelectorAll(`[data-fach-id="${fachId}"]`);
+                buttons.forEach(btn => btn.classList.remove("active-sort"));
+                const activeButton = document.querySelector(
+                    `.sort-${ascending ? "oldest" : "newest"}[data-fach-id="${fachId}"]`
+                );
+                if (activeButton) activeButton.classList.add("active-sort");
+            });
+        }
+
+        document.querySelectorAll(".sort-oldest").forEach(button => {
+            button.addEventListener("click", function () {
+                const fachId = this.getAttribute("data-fach-id");
+                const table = document.querySelector(`table[data-fach-id="${fachId}"]`);
+                sortTable(table, true);
+                sortOrder[fachId] = "asc";
+                localStorage.setItem(localStorageKey, JSON.stringify(sortOrder));
+
+                
+                document.querySelectorAll(`[data-fach-id="${fachId}"]`).forEach(btn => btn.classList.remove("active-sort"));
+                this.classList.add("active-sort");
+            });
+        });
+
+        document.querySelectorAll(".sort-newest").forEach(button => {
+            button.addEventListener("click", function () {
+                const fachId = this.getAttribute("data-fach-id");
+                const table = document.querySelector(`table[data-fach-id="${fachId}"]`);
+                sortTable(table, false);
+                sortOrder[fachId] = "desc";
+                localStorage.setItem(localStorageKey, JSON.stringify(sortOrder));
+
+                
+                document.querySelectorAll(`[data-fach-id="${fachId}"]`).forEach(btn => btn.classList.remove("active-sort"));
+                this.classList.add("active-sort");
+            });
+        });
+
+        
+        applySortOrder();
+    });
+    </script>
+</body>
+{% endif %}
+</html>
